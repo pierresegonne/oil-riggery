@@ -7,8 +7,11 @@ readme = "README.md"
 packages = [{include = "oil_riggery"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.12"
 opencv-python = "^4.8.0.74"
+tensorflow = "^2.13.0"
+matplotlib = "^3.7.2"
+scikit-learn = "^1.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
