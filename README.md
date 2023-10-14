@@ -19,6 +19,12 @@ A streamlit data explorer is provided under `/data`. Pre-requisites:
 
 * Add the `NEPU_OWOD-1.0` under the `/data` folder. It can be downloaded following the link above.
 
+Run with:
+
+```bash
+poetry run streamlit run data/Data_explorer.py
+```
+
 ## Method
 
 TBD
