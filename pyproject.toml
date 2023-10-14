@@ -1,10 +1,12 @@
 [tool.poetry]
 name = "oil-riggery"
 version = "0.1.0"
-description = "automatic segmentation of oil rigs from satellite images"
+description = "automatic detection of oil rigs from satellite images"
 authors = ["Pierre Segonne <pierre.segonne@protonmail.com>"]
 readme = "README.md"
-packages = [{include = "oil_riggery"}]
+packages = [
+    { include = "oil_riggery", from = "." },
+]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"

@@ -22,7 +22,7 @@ A streamlit data explorer is provided under `/data`. Pre-requisites:
 Run with:
 
 ```bash
-poetry run streamlit run data/Data_explorer.py
+poetry run streamlit run oil_riggery/data/Data_explorer.py
 ```
 
 ## Method
