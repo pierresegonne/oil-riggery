@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 import untangle
 
+from oil_riggery.src.lib.image import pad_image
+
 
 def parse_xml_annotation(xml_file: str) -> dict:
     xml_doc = untangle.parse(xml_file)
@@ -84,6 +86,9 @@ class RCNNDataset:
         raise NotImplementedError
 
 class NEPUDataset(RCNNDataset):
+
+    raw_image_size: Tuple[int, int] = (1024, 1024, 3)
+    image_size: Tuple[int, int] = (224, 224, 3)
 
     def __init__(
             self,
@@ -168,19 +173,47 @@ class NEPUDataset(RCNNDataset):
         )
 
     def _load_image(self, filename: str) -> np.ndarray:
-        return (cv2.imread(os.path.join(self.files_path, filename)) / 255.0).astype(np.float32)
+        image = (cv2.imread(os.path.join(self.files_path, filename)) / 255.0).astype(np.float32)
+        if image.shape != self.raw_image_size:
+            image = pad_image(image, self.raw_image_size)
+        image = cv2.resize(image, self.image_size[:2])
+        return image
+
+    def _load_target(self, annotation: Annotation) -> np.ndarray:
+        raw_bounding_box = annotation.to_target()
+        resize_factor_x = self.raw_image_size[0] / self.image_size[0]
+        resize_factor_y = self.raw_image_size[1] / self.image_size[1]
+        resize_factor = np.array([resize_factor_x, resize_factor_y, resize_factor_x, resize_factor_y])
+        bounding_box = (raw_bounding_box / resize_factor).astype(np.int32)
+        return bounding_box
 
     def get_train_dataset(self) -> Generator[np.ndarray, np.ndarray]:
         for i in self.train_indices:
-            yield self._load_image(self.filenames[i]), self.annotations[i].to_target()
+            yield self._load_image(self.filenames[i]), self._load_target(self.annotations[i])
 
     def get_test_dataset(self) -> Generator[np.ndarray, np.ndarray]:
         for i in self.test_indices:
-            yield self._load_image(self.filenames[i]), self.annotations[i].to_target()
+            yield self._load_image(self.filenames[i]), self._load_target(self.annotations[i])
 
     def get_eval_dataset(self) -> Generator[np.ndarray, np.ndarray]:
         for i in self.eval_indices:
-            yield self._load_image(self.filenames[i]), self.annotations[i].to_target()
+            yield self._load_image(self.filenames[i]), self._load_target(self.annotations[i])
+
+    def visualise(self, idx: int) -> None:
+        image = self._load_image(self.filenames[idx])
+        annotations = [a for a in self.annotations if a.filename == self.filenames[idx]]
+        for annotation in annotations:
+            bb_box = self._load_target(annotation)
+            cv2.rectangle(
+                image,
+                (bb_box[0], bb_box[1]),
+                (bb_box[2], bb_box[3]),
+                (0, 255, 0),
+                2,
+            )
+        cv2.imshow("image", image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 
@@ -193,3 +226,4 @@ if __name__ == "__main__":
     )
     train_dataset = dataset.get_train_dataset()
     img, annotations = next(train_dataset)
+    dataset.visualise(10)
