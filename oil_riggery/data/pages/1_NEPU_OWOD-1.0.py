@@ -1,8 +1,9 @@
-from pathlib import Path
 from glob import glob
+from pathlib import Path
+
+import cv2
 import streamlit as st
 import untangle
-import cv2
 
 
 def parse_xml_annotation(xml_file: str) -> dict:
