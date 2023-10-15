@@ -12,9 +12,25 @@ from oil_riggery.src import config
 from oil_riggery.src.dataset import NEPUDataset
 
 
-def get_dataset() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def get_dataset(cache: bool) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
+    _CACHE_FOLDER = ROOT_PATH / ".cache/dataset"
     print("[INFO] loading dataset...")
+
+    if cache:
+        _CACHE_FOLDER.mkdir(parents=True, exist_ok=True)
+        try:
+            X_train = np.load(_CACHE_FOLDER / "X_train.npy")
+            X_eval = np.load(_CACHE_FOLDER / "X_eval.npy")
+            X_test = np.load(_CACHE_FOLDER / "X_test.npy")
+            Y_train = np.load(_CACHE_FOLDER / "Y_train.npy")
+            Y_eval = np.load(_CACHE_FOLDER / "Y_eval.npy")
+            Y_test = np.load(_CACHE_FOLDER / "Y_test.npy")
+            print("[INFO] dataset loaded from cache")
+            return X_train, X_eval, X_test, Y_train, Y_eval, Y_test
+        except FileNotFoundError:
+            print("[INFO] cache not found, loading dataset from scratch")
+
     dataset = NEPUDataset.load(
         (ROOT_PATH / "data/NEPU_OWOD-1.0/JPEGImages").as_posix(),
         (ROOT_PATH / "data/NEPU_OWOD-1.0/Annotations").as_posix(),
@@ -37,12 +53,22 @@ def get_dataset() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.nd
 
     print("[INFO] train dataset shape: ", X_train.shape)
 
+    if cache:
+        np.save(_CACHE_FOLDER / "X_train.npy", X_train)
+        np.save(_CACHE_FOLDER / "X_eval.npy", X_eval)
+        np.save(_CACHE_FOLDER / "X_test.npy", X_test)
+        np.save(_CACHE_FOLDER / "Y_train.npy", Y_train)
+        np.save(_CACHE_FOLDER / "Y_eval.npy", Y_eval)
+        np.save(_CACHE_FOLDER / "Y_test.npy", Y_test)
+        print("[INFO] dataset saved to cache")
+
     return X_train, X_eval, X_test, Y_train, Y_eval, Y_test
 
 def get_model() -> Model:
+    input_shape = (224, 224, 3)
     # load the VGG16 network, ensuring the head FC layers are left off
     vgg = VGG16(weights="imagenet", include_top=False,
-        input_tensor=Input(shape=(224, 224, 3)))
+        input_tensor=Input(shape=input_shape))
     # freeze all VGG layers so they will *not* be updated during the
     # training process
     vgg.trainable = False
@@ -93,7 +119,7 @@ def run(model: Model, X_train: np.ndarray, X_eval: np.ndarray, Y_train: np.ndarr
 
 
 def main() -> None:
-    X_train, X_eval, X_test, Y_train, Y_eval, Y_test = get_dataset()
+    X_train, X_eval, X_test, Y_train, Y_eval, Y_test = get_dataset(cache=True)
     model = get_model()
     run(model, X_train, X_eval, Y_train, Y_eval)
 
