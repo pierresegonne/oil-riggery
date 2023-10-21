@@ -30,6 +30,7 @@ def parse_xml_annotation(xml_file: str) -> dict:
     }
     return annotation_dict
 
+
 @dataclass
 class Annotation:
     filename: str
@@ -45,8 +46,8 @@ class Annotation:
     def to_target(self) -> np.ndarray:
         return np.array([self.xmin, self.ymin, self.xmax, self.ymax], dtype=np.float32)
 
-class RCNNDataset:
 
+class RCNNDataset:
     annotations_path: str
     files_path: str
 
@@ -85,18 +86,18 @@ class RCNNDataset:
         """
         raise NotImplementedError
 
-class NEPUDataset(RCNNDataset):
 
+class NEPUDataset(RCNNDataset):
     raw_image_size: Tuple[int, int] = (1024, 1024, 3)
     image_size: Tuple[int, int] = (224, 224, 3)
 
     def __init__(
-            self,
-            files_path: str,
-            annotations_path: str,
-            filenames: List[str],
-            annotations: List[Annotation],
-            ) -> None:
+        self,
+        files_path: str,
+        annotations_path: str,
+        filenames: List[str],
+        annotations: List[Annotation],
+    ) -> None:
         self.files_path = files_path
         self.annotations_path = annotations_path
         self.annotations = annotations
@@ -111,8 +112,8 @@ class NEPUDataset(RCNNDataset):
         np.random.seed(self.seed)
         np.random.shuffle(indices)
         self.train_indices = indices[:n_train]
-        self.test_indices = indices[n_train:n_train+n_test]
-        self.eval_indices = indices[n_train+n_test:]
+        self.test_indices = indices[n_train : n_train + n_test]
+        self.eval_indices = indices[n_train + n_test :]
 
         super().__init__()
 
@@ -121,13 +122,15 @@ class NEPUDataset(RCNNDataset):
         files_path: str,
         annotations_path: str,
         file_extension: str = "jpg",
-        annotation_extenstion: str = "xml"
+        annotation_extenstion: str = "xml",
     ) -> NEPUDataset:
         # Verify that folders exist
         if not os.path.exists(files_path):
             raise FileNotFoundError(f"Images path {files_path} does not exist.")
         if not os.path.exists(annotations_path):
-            raise FileNotFoundError(f"Annotations path {annotations_path} does not exist.")
+            raise FileNotFoundError(
+                f"Annotations path {annotations_path} does not exist."
+            )
 
         filenames = [f for f in os.listdir(files_path) if f.endswith(file_extension)]
         filenames = sorted(filenames)
@@ -164,7 +167,6 @@ class NEPUDataset(RCNNDataset):
                 f"Images: {image_filenames}."
             )
 
-
         return NEPUDataset(
             files_path=files_path,
             annotations_path=annotations_path,
@@ -172,32 +174,48 @@ class NEPUDataset(RCNNDataset):
             annotations=annotations,
         )
 
-    def _load_image(self, filename: str) -> np.ndarray:
-        image = (cv2.imread(os.path.join(self.files_path, filename)) / 255.0).astype(np.float32)
-        if image.shape != self.raw_image_size:
-            image = pad_image(image, self.raw_image_size)
-        image = cv2.resize(image, self.image_size[:2])
+    def _load_image(self, filename: str, pad_and_resize: bool = True) -> np.ndarray:
+        image = (cv2.imread(os.path.join(self.files_path, filename)) / 255.0).astype(
+            np.float32
+        )
+        if pad_and_resize:
+            if image.shape != self.raw_image_size:
+                image = pad_image(image, self.raw_image_size)
+            image = cv2.resize(image, self.image_size[:2])
         return image
 
-    def _load_target(self, annotation: Annotation) -> np.ndarray:
+    def _load_target(
+        self, annotation: Annotation, pad_and_resize: bool = False
+    ) -> np.ndarray:
         raw_bounding_box = annotation.to_target()
-        resize_factor_x = self.raw_image_size[0] / self.image_size[0]
-        resize_factor_y = self.raw_image_size[1] / self.image_size[1]
-        resize_factor = np.array([resize_factor_x, resize_factor_y, resize_factor_x, resize_factor_y])
+        if pad_and_resize:
+            resize_factor_x = self.raw_image_size[0] / self.image_size[0]
+            resize_factor_y = self.raw_image_size[1] / self.image_size[1]
+            resize_factor = np.array(
+                [resize_factor_x, resize_factor_y, resize_factor_x, resize_factor_y]
+            )
+        else:
+            resize_factor = np.array([1, 1, 1, 1])
         bounding_box = (raw_bounding_box / resize_factor).astype(np.int32)
         return bounding_box
 
     def get_train_dataset(self) -> Generator[np.ndarray, np.ndarray]:
         for i in self.train_indices:
-            yield self._load_image(self.filenames[i]), self._load_target(self.annotations[i])
+            yield self._load_image(self.filenames[i]), self._load_target(
+                self.annotations[i]
+            )
 
     def get_test_dataset(self) -> Generator[np.ndarray, np.ndarray]:
         for i in self.test_indices:
-            yield self._load_image(self.filenames[i]), self._load_target(self.annotations[i])
+            yield self._load_image(self.filenames[i]), self._load_target(
+                self.annotations[i]
+            )
 
     def get_eval_dataset(self) -> Generator[np.ndarray, np.ndarray]:
         for i in self.eval_indices:
-            yield self._load_image(self.filenames[i]), self._load_target(self.annotations[i])
+            yield self._load_image(self.filenames[i]), self._load_target(
+                self.annotations[i]
+            )
 
     def visualise(self, idx: int) -> None:
         image = self._load_image(self.filenames[idx])
@@ -214,9 +232,6 @@ class NEPUDataset(RCNNDataset):
         cv2.imshow("image", image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-
-
-
 
 
 if __name__ == "__main__":
