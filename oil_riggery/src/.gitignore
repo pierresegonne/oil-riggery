@@ -1,3 +1,4 @@
 # YOLOv5 - original structure - deprecated for oil_riggery_yolov5
-datasets/
-yolov5/
+datasets
+!/oil_riggery_yolov5/datasets
+yolov5
