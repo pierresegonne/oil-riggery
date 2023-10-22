@@ -1,0 +1,3 @@
+[submodule "oil_riggery/src/oil_riggery_yolov5/oil-riggery_yolov5"]
+	path = oil_riggery/src/oil_riggery_yolov5/oil-riggery_yolov5
+	url = https://github.com/pierresegonne/oil-riggery_yolov5
