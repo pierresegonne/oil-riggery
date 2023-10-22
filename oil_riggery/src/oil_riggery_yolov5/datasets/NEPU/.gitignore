@@ -1,0 +1,4 @@
+images/*/*.jpg
+labels/*/*.txt
+labels/train.cache
+labels/val.cache
